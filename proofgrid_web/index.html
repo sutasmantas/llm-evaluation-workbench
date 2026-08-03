@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="ProofGrid frozen LLM reliability comparison workbench" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%232246e8'/%3E%3Ctext x='5' y='21' fill='white' font-size='12' font-family='Arial'%3EPG%3C/text%3E%3C/svg%3E" />
+    <title>ProofGrid · reliability workbench</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <a class="brand" href="/"><span class="mark">PG</span>ProofGrid</a>
+        <div class="runline"><span>suite / lead-intake-v1</span><strong id="run-title">No run yet</strong><span class="right" id="suite-count">18 cases · 6 heldout</span></div>
+        <button class="action" id="run-button">Run frozen suite</button>
+      </header>
+      <section class="brief">
+        <div><span class="stamp">Promotion proof / frozen before run</span><h1>Compare the output,<br />not the provider story.</h1></div>
+        <p>Baseline, structured, and repair paths face the same extraction cases. Select a result cell to inspect the checks and resolve only evidence-backed corrections.</p>
+      </section>
+      <section class="notice" id="notice" role="status" aria-live="polite">Ready to run the deterministic no-key suite.</section>
+      <section class="matrix-wrap" aria-label="Evaluation comparison matrix">
+        <div class="matrix" id="matrix"><div class="empty">Run the frozen suite to populate the proof sheet.</div></div>
+      </section>
+      <section class="tray" id="evidence-tray" aria-label="Selected result evidence">
+        <div class="tray-label"><span class="eyebrow">Selected evidence</span><h2 id="selected-title">No result selected</h2><p id="selected-summary">Select a matrix cell after a run.</p></div>
+        <div><span class="eyebrow">Checks</span><div id="selected-checks" class="checks">—</div></div>
+        <div class="patch"><span class="eyebrow">Output / correction</span><pre id="selected-output">—</pre></div>
+        <div class="review-actions"><button id="resolve-button" disabled>Accept expected correction</button><button id="keep-button" disabled>Keep in review</button></div>
+      </section>
+      <footer class="gate">
+        <div><span class="eyebrow">Release gate</span></div>
+        <p id="gate-copy"><b>NOT RUN</b> · thresholds are frozen in evals/proofgrid/promotion.json</p>
+        <a id="export-link" aria-disabled="true">Export CI report</a>
+      </footer>
+    </main>
+    <script src="./browser-data.js"></script>
+    <script src="./app.js" defer></script>
+  </body>
+</html>

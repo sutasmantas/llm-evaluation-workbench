@@ -1,0 +1,40 @@
+name: ProofGrid
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install focused development dependencies
+        run: python -m pip install -e ".[dev]"
+      - name: Static checks
+        run: |
+          python -m black --check py/proofgrid
+          python -m isort --check-only py/proofgrid
+          python -m flake8 py/proofgrid
+      - name: Credential-free tests
+        run: >-
+          python -m pytest -q
+          py/autoevals/test_json.py
+          py/autoevals/test_serializable_data_class.py
+          py/proofgrid
+      - name: Package
+        run: |
+          python -m build
+          python -m twine check dist/*
+      - name: Deterministic promotion gate
+        run: proofgrid run --require-winner --output .proofgrid/ci-run.json

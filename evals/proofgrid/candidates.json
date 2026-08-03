@@ -1,0 +1,34 @@
+{
+  "candidates": [
+    {
+      "candidate_id": "baseline",
+      "label": "A · Baseline",
+      "prompt": "Extract the useful lead details as JSON.",
+      "provider": "deterministic-local",
+      "model": "fixture-parser-v1",
+      "response_mode": "baseline",
+      "max_retries": 0
+    },
+    {
+      "candidate_id": "structured",
+      "label": "B · Structured",
+      "prompt": "Return only JSON matching the supplied lead-intake schema. Use null or unknown when the source does not support a value.",
+      "provider": "deterministic-local",
+      "model": "fixture-parser-v1",
+      "response_mode": "structured",
+      "max_retries": 0
+    },
+    {
+      "candidate_id": "repair",
+      "label": "C · Repair",
+      "prompt": "Return schema-valid lead-intake JSON. If a relative date lacks a timezone or reference date, repair it to null rather than inventing a date.",
+      "provider": "deterministic-local",
+      "model": "fixture-parser-v1",
+      "response_mode": "repair",
+      "max_retries": 1,
+      "metadata": {
+        "simulate_rate_limit_case_ids": ["EXT-016"]
+      }
+    }
+  ]
+}

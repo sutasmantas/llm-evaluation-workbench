@@ -1,0 +1,12 @@
+{
+  "registered_before_run": "2026-08-01",
+  "evaluation_split": "heldout",
+  "min_schema_pass_rate": 1.0,
+  "min_exact_pass_rate": 0.95,
+  "min_mean_task_score": 0.95,
+  "max_unresolved_reviews": 0,
+  "review_below_task_score": 0.95,
+  "tie_break_order": ["total_cost_usd", "retry_count", "median_latency_ms", "candidate_id"],
+  "judge_rubric": "Optional only: assess whether the extracted fields are supported by the input. Return JSON with score and reason.",
+  "claim_boundary": "A winner is promoted only for this frozen deterministic fixture set; it is not a provider ranking."
+}

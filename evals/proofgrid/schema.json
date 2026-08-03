@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Lead intake extraction",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contact_name",
+    "company",
+    "region",
+    "intent",
+    "urgency",
+    "follow_up"
+  ],
+  "properties": {
+    "contact_name": { "type": ["string", "null"] },
+    "company": { "type": ["string", "null"] },
+    "region": { "enum": ["eu", "us", "apac", "unknown"] },
+    "intent": { "enum": ["demo", "integration", "support", "unknown"] },
+    "urgency": { "enum": ["high", "medium", "low", "unknown"] },
+    "follow_up": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "string", "format": "date", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" }
+      ]
+    }
+  }
+}

@@ -1,0 +1,769 @@
+import asyncio
+import json
+from typing import cast
+
+import pytest
+import respx
+from httpx import Response
+from openai import OpenAI
+from pydantic import BaseModel
+
+from autoevals import init
+from autoevals.llm import Battle, Factuality, LLMClassifier, OpenAILLMClassifier, build_classification_tools
+from autoevals.oai import OpenAIV1Module, get_default_model
+from autoevals.thread_utils import compute_thread_template_vars, template_uses_thread_variables
+
+
+class TestModel(BaseModel):
+    foo: str
+    num: int
+
+
+def test_render_messages():
+    classifier = OpenAILLMClassifier(
+        "test",
+        messages=[
+            {"role": "user", "content": "{{value}} and {{{value}}}"},
+            {"role": "user", "content": "Dict double braces: {{data}}"},
+            {"role": "user", "content": "Dict triple braces: {{{data}}}"},
+            {"role": "user", "content": "Model double braces: {{model}}"},
+            {"role": "user", "content": "Model triple braces: {{{model}}}"},
+            {"role": "user", "content": ""},  # test empty content
+        ],
+        model="gpt-4",
+        choice_scores={"A": 1},
+        classification_tools=[],
+    )
+
+    test_dict = {"foo": "bar", "num": 42}
+    test_model = TestModel(foo="bar", num=42)
+
+    rendered = classifier._render_messages(value="<b>bold</b>", data=test_dict, model=test_model)
+
+    # Test that HTML is never escaped, regardless of syntax.
+    assert rendered[0]["content"] == "<b>bold</b> and <b>bold</b>"
+
+    # Test dict rendering - both use str().
+    assert rendered[1]["content"] == "Dict double braces: {'foo': 'bar', 'num': 42}"
+    assert rendered[2]["content"] == "Dict triple braces: {'foo': 'bar', 'num': 42}"
+
+    # Test model rendering - both use str().
+    assert rendered[3]["content"] == "Model double braces: foo='bar' num=42"
+    assert rendered[4]["content"] == "Model triple braces: foo='bar' num=42"
+
+    # Test empty content.
+    assert rendered[5]["content"] == ""
+
+
+def test_render_messages_with_thread_variables():
+    classifier = OpenAILLMClassifier(
+        "test",
+        messages=[
+            {"role": "user", "content": "{{thread}}"},
+            {"role": "user", "content": "First message: {{thread.0}}"},
+            {"role": "user", "content": "Count: {{thread_count}}"},
+            {"role": "user", "content": "First: {{first_message}}"},
+            {"role": "user", "content": "Users: {{user_messages}}"},
+            {"role": "user", "content": "Pairs: {{human_ai_pairs}}"},
+            {
+                "role": "user",
+                "content": "Messages:{{#thread}}\n- {{role}}: {{content}}{{/thread}}",
+            },
+        ],
+        model="gpt-4",
+        choice_scores={"A": 1},
+        classification_tools=[],
+    )
+
+    sample_thread = [
+        {"role": "user", "content": "Hello, how are you?"},
+        {"role": "assistant", "content": "I am doing well, thank you!"},
+        {"role": "user", "content": "What is the weather like?"},
+        {"role": "assistant", "content": "It is sunny and warm today."},
+    ]
+    thread_vars = compute_thread_template_vars(sample_thread)
+    rendered = classifier._render_messages(**thread_vars)
+
+    assert "User:" in rendered[0]["content"]
+    assert "Hello, how are you?" in rendered[0]["content"]
+    assert "Assistant:" in rendered[0]["content"]
+    assert rendered[1]["content"] == "First message: user: Hello, how are you?"
+    assert rendered[2]["content"] == "Count: 4"
+    assert rendered[3]["content"] == "First: user: Hello, how are you?"
+    assert "Users: User:" in rendered[4]["content"]
+    assert "Pairs:" in rendered[5]["content"]
+    assert "human" in rendered[5]["content"]
+    assert rendered[6]["content"].startswith("Messages:\n- user: Hello, how are you?")
+
+
+def test_thread_template_detection_and_split_thread_vars():
+    assert template_uses_thread_variables("{{thread_with_system}}")
+
+    full_thread = [
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user", "content": "Hello, how are you?"},
+        {"role": "assistant", "content": "I am doing well, thank you!"},
+    ]
+    filtered_thread = full_thread[1:]
+
+    thread_vars = compute_thread_template_vars(filtered_thread, full_thread)
+
+    assert len(thread_vars["thread"]) == 2
+    assert len(thread_vars["thread_with_system"]) == 3
+    assert str(thread_vars["thread"][0]) == "user: Hello, how are you?"
+    assert str(thread_vars["thread_with_system"][0]) == "system: You are a helpful assistant."
+    assert thread_vars["thread_count"] == 2
+
+
+class _FakeTrace:
+    def __init__(self, thread):
+        self._thread = thread
+
+    async def get_thread(self, options=None):
+        del options
+        return self._thread
+
+
+def test_llm_classifier_request_args_keep_thread_filtered_and_thread_with_system_unfiltered():
+    system_marker = "PY_AUTOEVALS_SYSTEM_MARKER"
+    trace = _FakeTrace(
+        [
+            {"role": "system", "content": system_marker},
+            {"role": "user", "content": "Hello"},
+            {"role": "assistant", "content": "Hi there"},
+        ]
+    )
+    classifier = LLMClassifier(
+        "test",
+        "Filtered thread:\n{{thread}}\n\nFull thread:\n{{thread_with_system}}",
+        {"Yes": 1, "No": 0},
+        use_cot=False,
+    )
+
+    request_args = classifier._request_args(output="", expected="", trace=trace)
+    rendered_prompt = request_args["messages"][0]["content"]
+
+    filtered_thread, full_thread = rendered_prompt.split("\n\nFull thread:\n", 1)
+    assert "Hello" in filtered_thread
+    assert "Hi there" in filtered_thread
+    assert system_marker not in filtered_thread
+    assert system_marker in full_thread
+
+
+@pytest.mark.asyncio
+async def test_llm_classifier_request_args_async_keep_thread_filtered_and_thread_with_system_unfiltered():
+    system_marker = "PY_AUTOEVALS_SYSTEM_MARKER_ASYNC"
+    trace = _FakeTrace(
+        [
+            {"role": "system", "content": system_marker},
+            {"role": "user", "content": "Hello"},
+            {"role": "assistant", "content": "Hi there"},
+        ]
+    )
+    classifier = LLMClassifier(
+        "test",
+        "Filtered thread:\n{{thread}}\n\nFull thread:\n{{thread_with_system}}",
+        {"Yes": 1, "No": 0},
+        use_cot=False,
+    )
+
+    request_args = await classifier._request_args_async(output="", expected="", trace=trace)
+    rendered_prompt = request_args["messages"][0]["content"]
+
+    filtered_thread, full_thread = rendered_prompt.split("\n\nFull thread:\n", 1)
+    assert "Hello" in filtered_thread
+    assert "Hi there" in filtered_thread
+    assert system_marker not in filtered_thread
+    assert system_marker in full_thread
+
+
+def test_openai():
+    e = OpenAILLMClassifier(
+        "title",
+        messages=[
+            {
+                "role": "system",
+                "content": """\
+You are a technical project manager who helps software engineers generate better titles for their GitHub issues.
+You will look at the issue description, and pick which of two titles better describes it.""",
+            },
+            {
+                "role": "user",
+                "content": """\
+I'm going to provide you with the issue description, and two possible titles.
+
+Issue Description: {{page_content}}
+
+1: {{output}}
+2: {{expected}}
+
+Please discuss each title briefly (one line for pros, one for cons), and then answer the question by calling
+the select_choice function with "1" or "2".""",
+            },
+        ],
+        model="gpt-3.5-turbo",
+        choice_scores={"1": 1, "2": 0},
+        classification_tools=build_classification_tools(useCoT=True, choice_strings=["1", "2"]),
+        max_tokens=500,
+    )
+
+    page_content = """
+As suggested by Nicolo, we should standardize the error responses coming from GoTrue, postgres, and realtime (and any other/future APIs) so that it's better DX when writing a client,
+
+We can make this change on the servers themselves, but since postgrest and gotrue are fully/partially external may be harder to change, it might be an option to transform the errors within the client libraries/supabase-js, could be messy?
+
+Nicolo also dropped this as a reference: http://spec.openapis.org/oas/v3.0.3#openapi-specification"""
+
+    gen_title = "Standardize error responses from GoTrue, Postgres, and Realtime APIs for better DX"
+    original_title = "This title has nothing to do with the content"
+
+    response = e(gen_title, original_title, page_content=page_content)
+    print(response.as_json(indent=2))
+    assert response.score == 1
+    assert response.error is None
+
+
+def test_llm_classifier():
+    for use_cot in [True, False]:
+        e = LLMClassifier(
+            "title",
+            """
+You are a technical project manager who helps software engineers generate better titles for their GitHub issues.
+You will look at the issue description, and pick which of two titles better describes it.
+
+I'm going to provide you with the issue description, and two possible titles.
+
+Issue Description: {{page_content}}
+
+1: {{output}}
+2: {{expected}}""",
+            {"1": 1, "2": 0},
+            use_cot=use_cot,
+        )
+
+        page_content = """
+As suggested by Nicolo, we should standardize the error responses coming from GoTrue, postgres, and realtime (and any other/future APIs) so that it's better DX when writing a client,
+
+We can make this change on the servers themselves, but since postgrest and gotrue are fully/partially external may be harder to change, it might be an option to transform the errors within the client libraries/supabase-js, could be messy?
+
+Nicolo also dropped this as a reference: http://spec.openapis.org/oas/v3.0.3#openapi-specification"""
+
+        gen_title = "Standardize error responses from GoTrue, Postgres, and Realtime APIs for better DX"
+        original_title = "This title has nothing to do with the content"
+
+        response = e(gen_title, original_title, page_content=page_content)
+        print(response.as_json(indent=2))
+        assert response.score == 1
+        assert response.error is None
+
+        response = e(original_title, gen_title, page_content=page_content)
+        print(response.as_json(indent=2))
+        assert response.score == 0
+        assert response.error is None
+
+
+def test_nested_async():
+    async def nested_async():
+        e = Battle()
+        e(instructions="Add the following numbers: 1, 2, 3", output="600", expected="6")
+
+    asyncio.run(nested_async())
+
+
+@respx.mock
+def test_factuality():
+    # Mock the Responses API endpoint for GPT-5
+    respx.route(method="POST", path__regex=r".*/responses$").respond(
+        json={
+            "id": "resp-test",
+            "object": "response",
+            "created": 1734029028,
+            "model": "gpt-5-mini",
+            "output": [
+                {
+                    "type": "function_call",
+                    "call_id": "call_test",
+                    "name": "select_choice",
+                    "arguments": '{"reasons":"1. The question asks to add the numbers 1, 2, and 3.\\n2. The expert answer provides the sum of these numbers as 6.\\n3. The submitted answer also provides the sum as 6.\\n4. Both the expert and submitted answers provide the same numerical result, which is 6.\\n5. Since both answers provide the same factual content, the submitted answer contains all the same details as the expert answer.\\n6. There is no additional information or discrepancy between the two answers.\\n7. Therefore, the submitted answer is neither a subset nor a superset; it is exactly the same as the expert answer in terms of factual content.","choice":"C"}',
+                }
+            ],
+        }
+    )
+
+    llm = Factuality(base_url="https://api.openai.com/v1/")
+    result = llm.eval(
+        output="6",
+        expected="6",
+        input="Add the following numbers: 1, 2, 3",
+    )
+
+    assert result.score == 1
+
+
+@respx.mock
+def test_factuality_client():
+    respx.route(method="POST", path__regex=r".*/responses$").respond(
+        json={
+            "id": "resp-test",
+            "object": "response",
+            "created": 1734029028,
+            "model": "gpt-5-mini",
+            "output": [
+                {
+                    "type": "function_call",
+                    "call_id": "call_test",
+                    "name": "select_choice",
+                    "arguments": '{"reasons":"1. The question asks to add the numbers 1, 2, and 3.\\n2. The expert answer provides the sum of these numbers as 6.\\n3. The submitted answer also provides the sum as 6.\\n4. Both the expert and submitted answers provide the same numerical result, which is 6.\\n5. Since both answers provide the same factual content, the submitted answer contains all the same details as the expert answer.\\n6. There is no additional information or discrepancy between the two answers.\\n7. Therefore, the submitted answer is neither a subset nor a superset; it is exactly the same as the expert answer in terms of factual content.","choice":"C"}',
+                }
+            ],
+        }
+    )
+
+    llm = Factuality(client=OpenAI(api_key="test"))
+    result = llm.eval(
+        output="6",
+        expected="6",
+        input="Add the following numbers: 1, 2, 3",
+    )
+
+    assert result.score == 1
+
+
+@pytest.fixture(autouse=True)
+def reset_client():
+    yield
+    init(client=None)
+
+
+# make sure we deny any leaked calls to OpenAI
+@respx.mock
+def test_init_client():
+    client = cast(OpenAIV1Module.OpenAI, OpenAI(api_key="test"))
+
+    respx.route(method="POST", path__regex=r".*/responses$").respond(
+        json={
+            "id": "resp-test",
+            "object": "response",
+            "created": 1734029028,
+            "model": "gpt-5-mini",
+            "output": [
+                {
+                    "type": "function_call",
+                    "call_id": "call_test",
+                    "name": "select_choice",
+                    "arguments": '{"reasons":"1. The question asks to add the numbers 1, 2, and 3.\\n2. The expert answer provides the sum of these numbers as 6.\\n3. The submitted answer also provides the sum as 6.\\n4. Both the expert and submitted answers provide the same numerical result, which is 6.\\n5. Since both answers provide the same factual content, the submitted answer contains all the same details as the expert answer.\\n6. There is no additional information or discrepancy between the two answers.\\n7. Therefore, the submitted answer is neither a subset nor a superset; it is exactly the same as the expert answer in terms of factual content.","choice":"C"}',
+                }
+            ],
+        }
+    )
+
+    init(client=client)
+
+    llm = Factuality(base_url="https://api.openai.com/v1/")
+    result = llm.eval(
+        output="6",
+        expected="6",
+        input="Add the following numbers: 1, 2, 3",
+    )
+
+    assert result.score == 1
+
+
+def test_battle():
+    for use_cot in [True, False]:
+        print("use_cot", use_cot)
+        e = Battle(use_cot=use_cot)
+        response = e(
+            instructions="Add the following numbers: 1, 2, 3",
+            output="600",
+            expected="6",
+        )
+
+        print(response.as_json(indent=2))
+        assert response.score == 0
+        assert response.error is None
+
+        response = e(
+            instructions="Add the following numbers: 1, 2, 3",
+            output="6",
+            expected="600",
+        )
+
+        print(response.as_json(indent=2))
+        assert response.score == 1
+        assert response.error is None
+
+        response = e(instructions="Add the following numbers: 1, 2, 3", output="6", expected="6")
+
+        print(response.as_json(indent=2))
+        assert response.score == 0
+        assert response.error is None
+
+
+@respx.mock
+def test_llm_classifier_omits_optional_parameters_when_not_specified():
+    """Test that temperature is not included in API request when not specified."""
+    captured_request_body = None
+
+    def capture_request(request):
+        nonlocal captured_request_body
+        captured_request_body = json.loads(request.content.decode("utf-8"))
+
+        return Response(
+            200,
+            json={
+                "id": "resp-test",
+                "object": "response",
+                "created": 1234567890,
+                "model": "gpt-5-mini",
+                "output": [
+                    {
+                        "type": "function_call",
+                        "call_id": "call_test",
+                        "name": "select_choice",
+                        "arguments": '{"choice": "1"}',
+                    }
+                ],
+            },
+        )
+
+    respx.post("https://api.openai.com/v1/responses").mock(side_effect=capture_request)
+
+    client = OpenAI(api_key="test-api-key", base_url="https://api.openai.com/v1")
+    init(client)
+
+    # Create classifier without specifying max_tokens or temperature
+    classifier = LLMClassifier(
+        "test",
+        "Test prompt: {{output}} vs {{expected}}",
+        {"1": 1, "2": 0},
+    )
+
+    classifier.eval(output="test output", expected="test expected")
+
+    # Verify that temperature is NOT in the request (Responses API doesn't support max_tokens)
+    assert "temperature" not in captured_request_body
+
+
+@respx.mock
+def test_llm_classifier_includes_parameters_when_specified():
+    """Test that temperature is included in API request when specified (max_tokens not supported by Responses API)."""
+    captured_request_body = None
+
+    def capture_request(request):
+        nonlocal captured_request_body
+        captured_request_body = json.loads(request.content.decode("utf-8"))
+
+        return Response(
+            200,
+            json={
+                "id": "resp-test",
+                "object": "response",
+                "created": 1234567890,
+                "model": "gpt-5-mini",
+                "output": [
+                    {
+                        "type": "function_call",
+                        "call_id": "call_test",
+                        "name": "select_choice",
+                        "arguments": '{"choice": "1"}',
+                    }
+                ],
+            },
+        )
+
+    respx.post("https://api.openai.com/v1/responses").mock(side_effect=capture_request)
+
+    client = OpenAI(api_key="test-api-key", base_url="https://api.openai.com/v1")
+    init(client)
+
+    # Create classifier with max_tokens, temperature and reasoning_effort specified
+    classifier = LLMClassifier(
+        "test",
+        "Test prompt: {{output}} vs {{expected}}",
+        {"1": 1, "2": 0},
+        max_tokens=256,
+        temperature=0.5,
+        reasoning_effort="medium",
+    )
+
+    classifier.eval(output="test output", expected="test expected")
+
+    # Verify that temperature is in the request with correct value (max_tokens not supported by Responses API)
+    assert captured_request_body["temperature"] == 0.5
+    assert "max_tokens" not in captured_request_body
+    # The Responses API nests reasoning effort under reasoning.effort.
+    assert captured_request_body["reasoning"] == {"effort": "medium"}
+    assert "reasoning_effort" not in captured_request_body
+
+
+@respx.mock
+def test_llm_classifier_uses_configured_default_model():
+    """Test that LLMClassifier uses the configured default model."""
+    captured_model = None
+
+    def capture_model(request):
+        nonlocal captured_model
+        captured_model = request.content.decode("utf-8")
+        # Parse JSON to extract model
+        import json
+
+        data = json.loads(captured_model)
+        captured_model = data.get("model")
+
+        return Response(
+            200,
+            json={
+                "id": "chatcmpl-test",
+                "object": "chat.completion",
+                "created": 1234567890,
+                "model": captured_model,
+                "choices": [
+                    {
+                        "index": 0,
+                        "message": {
+                            "role": "assistant",
+                            "content": None,
+                            "tool_calls": [
+                                {
+                                    "id": "call_test",
+                                    "type": "function",
+                                    "function": {"name": "select_choice", "arguments": '{"choice": "1"}'},
+                                }
+                            ],
+                        },
+                        "finish_reason": "tool_calls",
+                    }
+                ],
+                "usage": {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30},
+            },
+        )
+
+    respx.post("https://api.openai.com/v1/chat/completions").mock(side_effect=capture_model)
+
+    client = OpenAI(api_key="test-api-key", base_url="https://api.openai.com/v1")
+
+    # Test with configured default model
+    init(client, default_model="claude-3-5-sonnet-20241022")
+    assert get_default_model() == "claude-3-5-sonnet-20241022"
+
+    classifier = LLMClassifier(
+        name="test",
+        prompt_template="Test prompt: {{output}}",
+        choice_scores={"1": 1, "2": 0},
+    )
+
+    classifier.eval(output="test output", expected="test expected")
+
+    assert captured_model == "claude-3-5-sonnet-20241022"
+
+    # Test that explicit model overrides default
+    captured_model = None
+    classifier_with_model = LLMClassifier(
+        name="test",
+        prompt_template="Test prompt: {{output}}",
+        choice_scores={"1": 1, "2": 0},
+        model="gpt-4-turbo",
+    )
+
+    classifier_with_model.eval(output="test output", expected="test expected")
+
+    assert captured_model == "gpt-4-turbo"
+
+    # Reset for other tests
+    init(None)
+
+
+@respx.mock
+def test_use_responses_api_forces_responses_for_non_gpt5_model():
+    """use_responses_api should route a non-gpt-5 model through the Responses API."""
+    responses_route = respx.route(method="POST", path__regex=r".*/responses$").mock(
+        return_value=Response(
+            200,
+            json={
+                "id": "resp-test",
+                "object": "response",
+                "created": 1234567890,
+                "model": "internal-proxy-model",
+                "output": [
+                    {
+                        "type": "function_call",
+                        "call_id": "call_test",
+                        "name": "select_choice",
+                        "arguments": '{"choice": "1"}',
+                    }
+                ],
+            },
+        )
+    )
+    chat_route = respx.route(method="POST", path__regex=r".*/chat/completions$").mock(
+        return_value=Response(200, json={})
+    )
+
+    client = OpenAI(api_key="test-api-key", base_url="https://api.openai.com/v1")
+    init(client)
+
+    classifier = LLMClassifier(
+        name="test",
+        prompt_template="Test prompt: {{output}}",
+        choice_scores={"1": 1, "2": 0},
+        model="internal-proxy-model",
+        use_responses_api=True,
+    )
+
+    result = classifier.eval(output="test output", expected="test expected")
+
+    assert result.score == 1
+    assert responses_route.called
+    assert not chat_route.called
+    # use_responses_api must be stripped before reaching the API.
+    body = json.loads(responses_route.calls[0].request.content.decode("utf-8"))
+    assert "use_responses_api" not in body
+
+    init(None)
+
+
+@respx.mock
+def test_use_responses_api_on_builtin_scorer():
+    """Built-in named scorers (SpecFileClassifier) should accept use_responses_api."""
+    responses_route = respx.route(method="POST", path__regex=r".*/responses$").mock(
+        return_value=Response(
+            200,
+            json={
+                "id": "resp-test",
+                "object": "response",
+                "created": 1234567890,
+                "model": "gpt-4.1",
+                "output": [
+                    {
+                        "type": "function_call",
+                        "call_id": "call_test",
+                        "name": "select_choice",
+                        "arguments": '{"reasons": "same", "choice": "C"}',
+                    }
+                ],
+            },
+        )
+    )
+    chat_route = respx.route(method="POST", path__regex=r".*/chat/completions$").mock(
+        return_value=Response(200, json={})
+    )
+
+    init(OpenAI(api_key="test-api-key", base_url="https://api.openai.com/v1"))
+
+    result = Factuality(model="gpt-4.1", use_responses_api=True).eval(
+        output="6", expected="6", input="Add the numbers 1, 2, 3"
+    )
+
+    assert result.score == 1
+    assert responses_route.called
+    assert not chat_route.called
+
+    init(None)
+
+
+@respx.mock
+def test_llm_classifier_injects_thread_vars_from_trace():
+    captured_request_body = None
+
+    class TraceStub:
+        def __init__(self, thread):
+            self.thread = thread
+            self.calls = 0
+
+        async def get_thread(self):
+            self.calls += 1
+            return self.thread
+
+    thread = [
+        {"role": "user", "content": "Hello"},
+        {"role": "assistant", "content": "Hi there"},
+        {"role": "user", "content": "Can you help me?"},
+    ]
+    trace = TraceStub(thread)
+
+    def capture_request(request):
+        nonlocal captured_request_body
+        captured_request_body = json.loads(request.content.decode("utf-8"))
+        return Response(
+            200,
+            json={
+                "id": "resp-test",
+                "object": "response",
+                "created": 1234567890,
+                "model": "gpt-5-mini",
+                "output": [
+                    {
+                        "type": "function_call",
+                        "call_id": "call_test",
+                        "name": "select_choice",
+                        "arguments": '{"choice": "1"}',
+                    }
+                ],
+            },
+        )
+
+    respx.post("https://api.openai.com/v1/responses").mock(side_effect=capture_request)
+    client = OpenAI(api_key="test-api-key", base_url="https://api.openai.com/v1")
+    init(client)
+
+    classifier = LLMClassifier(
+        "thread_test",
+        "Thread:\n{{thread}}\nCount: {{thread_count}}\nFirst: {{first_message}}\nUsers:\n{{user_messages}}",
+        {"1": 1, "2": 0},
+    )
+    classifier.eval(output="irrelevant", expected="irrelevant", trace=trace)
+
+    content = captured_request_body["input"][0]["content"]
+    assert trace.calls == 1
+    assert "Thread:" in content
+    assert "User:" in content
+    assert "Assistant:" in content
+    assert "Count: 3" in content
+    assert "First: user: Hello" in content
+    assert "Users:" in content
+
+
+@respx.mock
+def test_llm_classifier_does_not_fetch_thread_when_template_does_not_use_it():
+    class TraceStub:
+        def __init__(self):
+            self.calls = 0
+
+        async def get_thread(self):
+            self.calls += 1
+            return [{"role": "user", "content": "unused"}]
+
+    trace = TraceStub()
+
+    respx.post("https://api.openai.com/v1/responses").mock(
+        return_value=Response(
+            200,
+            json={
+                "id": "resp-test",
+                "object": "response",
+                "created": 1234567890,
+                "model": "gpt-5-mini",
+                "output": [
+                    {
+                        "type": "function_call",
+                        "call_id": "call_test",
+                        "name": "select_choice",
+                        "arguments": '{"choice": "1"}',
+                    }
+                ],
+            },
+        )
+    )
+
+    client = OpenAI(api_key="test-api-key", base_url="https://api.openai.com/v1")
+    init(client)
+
+    classifier = LLMClassifier(
+        "thread_unused_test",
+        "Output: {{output}}",
+        {"1": 1, "2": 0},
+    )
+    classifier.eval(output="x", expected="y", trace=trace)
+
+    assert trace.calls == 0
