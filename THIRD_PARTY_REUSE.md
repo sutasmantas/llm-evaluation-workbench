@@ -21,6 +21,22 @@ provide: case imports, frozen version manifests, three-path orchestration,
 provider retry normalization, SQLite run/review records, correction-driven
 gate recomputation, CLI/API exports, and the ProofGrid comparison interface.
 
+## Executable-evaluation adapter
+
+- upstream: `https://github.com/UKGovernmentBEIS/inspect_ai.git`
+- pinned commit: `cb00efcd12dfbf3e44f486648e05e54f1337fe9a`
+- observed version: `0.3.253.dev7+gcb00efcd1`
+- activation trigger: FirstRing supplies a real deterministic executable-agent
+  workload with grounded-routing, interruption, provider-recovery, and
+  dead-letter outcomes.
+
+Inspect owns task/dataset/solver/scorer execution and raw JSON logs. ProofGrid
+adds only the narrow seam selected in the prior GitHub audit: a JSON-Schema
+oracle scorer and a strict log importer into its existing run/decision
+contract. It does not copy Inspect's runner, viewer, model adapters, retry
+machinery, or log format, and it does not replace ProofGrid's store or product
+workflow.
+
 ## Compared but not adopted
 
 - Promptfoo at `82ca3c24ec445cf1734face46042c187b659b954` supplies a mature runner,

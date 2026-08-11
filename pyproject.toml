@@ -55,6 +55,9 @@ dev = [
 doc = ["pydoc-markdown"]
 scipy = ["numpy", "scipy"]
 litellm = ["litellm>=1.60,<1.85"]
+inspect = [
+  "inspect-ai @ git+https://github.com/UKGovernmentBEIS/inspect_ai.git@cb00efcd12dfbf3e44f486648e05e54f1337fe9a",
+]
 all = ["autoevals[scipy]"]
 
 [tool.setuptools]
@@ -70,6 +73,18 @@ version = { attr = "autoevals.version.VERSION" }
 [tool.black]
 line-length = 119
 
+[tool.isort]
+profile = "black"
+line_length = 119
+
 [tool.ruff]
 line-length = 119
 lint.select = ["I001"]
+
+[tool.uv]
+conflicts = [
+  [
+    { extra = "doc" },
+    { extra = "inspect" },
+  ],
+]

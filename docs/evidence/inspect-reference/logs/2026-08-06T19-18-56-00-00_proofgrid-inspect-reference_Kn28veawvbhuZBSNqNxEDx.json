@@ -1,0 +1,399 @@
+{
+  "version": 2,
+  "status": "success",
+  "eval": {
+    "eval_id": "FAB5NrWkZAWDtTzHGS2CmX",
+    "run_id": "Gsj5JebW3U6VbcMkVrGTyg",
+    "created": "2026-08-06T19:18:56+00:00",
+    "task": "proofgrid_inspect_reference",
+    "task_id": "Kn28veawvbhuZBSNqNxEDx",
+    "task_version": "1",
+    "task_file": "evals/proofgrid/inspect_reference.py",
+    "task_display_name": "proofgrid_inspect_reference",
+    "task_registry_name": "proofgrid_inspect_reference",
+    "task_attribs": {},
+    "task_args": {
+      "contract_mutant": false
+    },
+    "task_args_passed": {},
+    "dataset": {
+      "samples": 1,
+      "sample_ids": [
+        "provider-reference"
+      ],
+      "shuffled": false
+    },
+    "model": "mockllm/model",
+    "model_generate_config": {},
+    "model_args": {},
+    "config": {
+      "epochs": 1,
+      "fail_on_error": true,
+      "continue_on_fail": false,
+      "score_on_error": false,
+      "sandbox_cleanup": true,
+      "log_samples": true,
+      "log_realtime": true,
+      "log_images": true,
+      "log_shared": 0,
+      "score_display": true
+    },
+    "revision": {
+      "type": "git",
+      "origin": "https://github.com/sutasmantas/llm-evaluation-workbench.git",
+      "commit": "db5fbee",
+      "dirty": true
+    },
+    "packages": {
+      "inspect_ai": "0.3.253.dev7+gcb00efcd1"
+    },
+    "metadata": {
+      "proofgrid_contract": "proofgrid.inspect-json-schema.v1",
+      "inspect_revision": "cb00efcd12dfbf3e44f486648e05e54f1337fe9a",
+      "mutation": null
+    },
+    "scorers": [
+      {
+        "name": "json_schema_contract",
+        "options": {},
+        "metrics": [
+          {
+            "name": "inspect_ai/mean",
+            "options": {}
+          },
+          {
+            "name": "inspect_ai/stderr",
+            "options": {}
+          }
+        ],
+        "metadata": {}
+      }
+    ]
+  },
+  "plan": {
+    "name": "plan",
+    "steps": [
+      {
+        "solver": "observed_json",
+        "params": {},
+        "params_passed": {}
+      }
+    ],
+    "config": {}
+  },
+  "results": {
+    "total_samples": 1,
+    "completed_samples": 1,
+    "scores": [
+      {
+        "name": "json_schema_contract",
+        "scorer": "json_schema_contract",
+        "scored_samples": 1,
+        "unscored_samples": 0,
+        "params": {},
+        "metrics": {
+          "mean": {
+            "name": "mean",
+            "value": 1.0,
+            "params": {}
+          },
+          "stderr": {
+            "name": "stderr",
+            "value": 0.0,
+            "params": {}
+          }
+        }
+      }
+    ]
+  },
+  "stats": {
+    "started_at": "2026-08-06T19:18:56+00:00",
+    "completed_at": "2026-08-06T19:19:00+00:00",
+    "model_usage": {},
+    "role_usage": {},
+    "connection_limit_history": []
+  },
+  "invalidated": false,
+  "tags": [],
+  "metadata": {
+    "proofgrid_contract": "proofgrid.inspect-json-schema.v1",
+    "inspect_revision": "cb00efcd12dfbf3e44f486648e05e54f1337fe9a",
+    "mutation": null
+  },
+  "samples": [
+    {
+      "id": "provider-reference",
+      "epoch": 1,
+      "input": "Import one versioned executable observation",
+      "target": "{\"additionalProperties\": false, \"properties\": {\"ready\": {\"const\": true}}, \"required\": [\"ready\"], \"type\": \"object\"}",
+      "messages": [
+        {
+          "id": "PWvPcLhVbKPfKiXVsGByz3",
+          "content": "Import one versioned executable observation",
+          "source": "input",
+          "role": "user"
+        }
+      ],
+      "output": {
+        "model": "proofgrid/observed-json",
+        "choices": [
+          {
+            "message": {
+              "id": "cfRNsd8rbNTvLfjkjmRjTw",
+              "content": "{\"ready\": true}",
+              "source": "generate",
+              "role": "assistant",
+              "model": "proofgrid/observed-json"
+            },
+            "stop_reason": "stop"
+          }
+        ],
+        "completion": "{\"ready\": true}"
+      },
+      "scores": {
+        "json_schema_contract": {
+          "value": 1,
+          "explanation": "output satisfies the frozen JSON Schema oracle",
+          "metadata": {
+            "failure_class": null,
+            "error_count": 0
+          },
+          "history": []
+        }
+      },
+      "metadata": {
+        "observed": {
+          "ready": true
+        },
+        "split": "heldout",
+        "category": "provider-reference"
+      },
+      "store": {},
+      "events": [
+        {
+          "uuid": "jYe4FPSpma9ccgdBPFDNLK",
+          "span_id": "2DFJcULD3JJrdmTJE4avQ8",
+          "timestamp": "2026-08-06T19:19:00.491801+00:00",
+          "working_start": 392944.9385132,
+          "event": "span_begin",
+          "id": "2DFJcULD3JJrdmTJE4avQ8",
+          "type": "init",
+          "name": "init"
+        },
+        {
+          "uuid": "PDPtP9x46T2xXAEVoB7h73",
+          "span_id": "2DFJcULD3JJrdmTJE4avQ8",
+          "timestamp": "2026-08-06T19:19:00.492836+00:00",
+          "working_start": 392944.9395552,
+          "event": "sample_init",
+          "sample": {
+            "input": "Import one versioned executable observation",
+            "target": "{\"additionalProperties\": false, \"properties\": {\"ready\": {\"const\": true}}, \"required\": [\"ready\"], \"type\": \"object\"}",
+            "id": "provider-reference",
+            "metadata": {
+              "observed": {
+                "ready": true
+              },
+              "split": "heldout",
+              "category": "provider-reference"
+            }
+          },
+          "state": {
+            "messages": [
+              {
+                "id": "PWvPcLhVbKPfKiXVsGByz3",
+                "content": "Import one versioned executable observation",
+                "source": "input",
+                "role": "user"
+              }
+            ],
+            "tools": [],
+            "tool_choice": null,
+            "store": {},
+            "output": {
+              "model": "mockllm/model",
+              "choices": [],
+              "completion": ""
+            },
+            "completed": false,
+            "metadata": {
+              "observed": {
+                "ready": true
+              },
+              "split": "heldout",
+              "category": "provider-reference"
+            }
+          }
+        },
+        {
+          "uuid": "HBErmaDTmqtsUMRdWhMEvo",
+          "span_id": "2DFJcULD3JJrdmTJE4avQ8",
+          "timestamp": "2026-08-06T19:19:00.493749+00:00",
+          "working_start": 392944.9404597,
+          "event": "span_end",
+          "id": "2DFJcULD3JJrdmTJE4avQ8"
+        },
+        {
+          "uuid": "Sj44tFER6JSbgvKh5bBhHJ",
+          "span_id": "QvJmR5zxLSgGsd7RV7voak",
+          "timestamp": "2026-08-06T19:19:00.496803+00:00",
+          "working_start": 0.001366000040434301,
+          "event": "span_begin",
+          "id": "QvJmR5zxLSgGsd7RV7voak",
+          "type": "solvers",
+          "name": "solvers"
+        },
+        {
+          "uuid": "NxDayi4BRYNAdkYKRmv6nu",
+          "span_id": "Uqin95JL8hbEyc5xwEpcz6",
+          "timestamp": "2026-08-06T19:19:00.500765+00:00",
+          "working_start": 0.005329800012987107,
+          "event": "span_begin",
+          "id": "Uqin95JL8hbEyc5xwEpcz6",
+          "parent_id": "QvJmR5zxLSgGsd7RV7voak",
+          "type": "solver",
+          "name": "observed_json"
+        },
+        {
+          "uuid": "ZdKcPX9FLdJn2KX9ZXi5FS",
+          "span_id": "Uqin95JL8hbEyc5xwEpcz6",
+          "timestamp": "2026-08-06T19:19:00.501957+00:00",
+          "working_start": 0.006519999995362014,
+          "event": "state",
+          "changes": [
+            {
+              "op": "replace",
+              "path": "/output/model",
+              "value": "proofgrid/observed-json",
+              "replaced": "mockllm/model"
+            },
+            {
+              "op": "add",
+              "path": "/output/choices/0",
+              "value": {
+                "message": {
+                  "id": "cfRNsd8rbNTvLfjkjmRjTw",
+                  "content": "{\"ready\": true}",
+                  "source": "generate",
+                  "role": "assistant",
+                  "model": "proofgrid/observed-json"
+                },
+                "stop_reason": "stop"
+              }
+            },
+            {
+              "op": "replace",
+              "path": "/output/completion",
+              "value": "{\"ready\": true}",
+              "replaced": ""
+            }
+          ]
+        },
+        {
+          "uuid": "YRrMe5EPEtenCPS5a6Lq5h",
+          "span_id": "Uqin95JL8hbEyc5xwEpcz6",
+          "timestamp": "2026-08-06T19:19:00.502637+00:00",
+          "working_start": 0.007199599989689887,
+          "event": "span_end",
+          "id": "Uqin95JL8hbEyc5xwEpcz6"
+        },
+        {
+          "uuid": "J8ajQNEEhEWBkSTgi7ComY",
+          "span_id": "QvJmR5zxLSgGsd7RV7voak",
+          "timestamp": "2026-08-06T19:19:00.503051+00:00",
+          "working_start": 0.007610300031956285,
+          "event": "span_end",
+          "id": "QvJmR5zxLSgGsd7RV7voak"
+        },
+        {
+          "uuid": "T8u4Qwi9fdjhGFjUNB6n2r",
+          "span_id": "bWXE3CzjYPyCN8VySRz8SU",
+          "timestamp": "2026-08-06T19:19:00.504507+00:00",
+          "working_start": 0.009066200000233948,
+          "event": "span_begin",
+          "id": "bWXE3CzjYPyCN8VySRz8SU",
+          "type": "scorers",
+          "name": "scorers"
+        },
+        {
+          "uuid": "kfK655jmUDERAmxqhNBzbA",
+          "span_id": "c2anBQJnQmE8fQo4TZji6B",
+          "timestamp": "2026-08-06T19:19:00.504911+00:00",
+          "working_start": 0.009470199991483241,
+          "event": "span_begin",
+          "id": "c2anBQJnQmE8fQo4TZji6B",
+          "parent_id": "bWXE3CzjYPyCN8VySRz8SU",
+          "type": "scorer",
+          "name": "json_schema_contract"
+        },
+        {
+          "uuid": "2sQ6srrzbp2vGRf3mxRdez",
+          "span_id": "c2anBQJnQmE8fQo4TZji6B",
+          "timestamp": "2026-08-06T19:19:00.506577+00:00",
+          "working_start": 0.011136799992527813,
+          "event": "score",
+          "score": {
+            "value": 1,
+            "explanation": "output satisfies the frozen JSON Schema oracle",
+            "metadata": {
+              "failure_class": null,
+              "error_count": 0
+            },
+            "history": []
+          },
+          "target": "{\"additionalProperties\": false, \"properties\": {\"ready\": {\"const\": true}}, \"required\": [\"ready\"], \"type\": \"object\"}",
+          "intermediate": false,
+          "scorer": "json_schema_contract",
+          "scorer_args": {}
+        },
+        {
+          "uuid": "NbqzTPUEvD77rFWQrwxPr8",
+          "span_id": "c2anBQJnQmE8fQo4TZji6B",
+          "timestamp": "2026-08-06T19:19:00.507088+00:00",
+          "working_start": 0.011647600040305406,
+          "event": "span_end",
+          "id": "c2anBQJnQmE8fQo4TZji6B"
+        },
+        {
+          "uuid": "XmkBTaABmgzGLUd2mDiQzb",
+          "span_id": "bWXE3CzjYPyCN8VySRz8SU",
+          "timestamp": "2026-08-06T19:19:00.507372+00:00",
+          "working_start": 0.011931199987884611,
+          "event": "span_end",
+          "id": "bWXE3CzjYPyCN8VySRz8SU"
+        }
+      ],
+      "model_usage": {},
+      "role_usage": {},
+      "started_at": "2026-08-06T19:19:00.495453+00:00",
+      "completed_at": "2026-08-06T19:19:00.508249+00:00",
+      "total_time": 0.013,
+      "working_time": 0.013,
+      "uuid": "6Gb5aGiXMJgBVxjnxHj6vP",
+      "error_retries": [],
+      "attachments": {},
+      "events_data": {
+        "messages": [],
+        "calls": []
+      },
+      "turn_count": 0
+    }
+  ],
+  "reductions": [
+    {
+      "scorer": "json_schema_contract",
+      "samples": [
+        {
+          "value": 1.0,
+          "explanation": "output satisfies the frozen JSON Schema oracle",
+          "metadata": {
+            "failure_class": null,
+            "error_count": 0
+          },
+          "history": [],
+          "sample_id": "provider-reference"
+        }
+      ]
+    }
+  ]
+}

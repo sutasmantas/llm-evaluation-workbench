@@ -19,6 +19,7 @@ and human corrections in one inspectable run.
 - persistent review corrections and recomputed promotion decisions;
 - JSON and CSV exports for client reports or CI gates;
 - imported observations from an application's real provider path.
+- executable agent/task evaluation through a pinned Inspect AI log boundary.
 
 The included run compares baseline, schema-constrained, and bounded-repair
 paths over 18 extraction and classification cases. Six cases are held out, and
@@ -64,6 +65,27 @@ their provider adapter:
 The observation contract preserves configuration versions, pricing, rubric,
 first-useful timing, review state, and case-level comparison evidence.
 
+## Evaluate an executable agent task
+
+Install the separate Inspect environment and run the provider reference:
+
+```powershell
+python -m uv sync --extra dev --extra inspect
+python -m uv run --extra inspect inspect eval `
+  evals/proofgrid/inspect_reference.py@proofgrid_inspect_reference `
+  --model mockllm/model --log-dir .proofgrid/inspect-logs --log-format json
+python -m uv run --extra inspect proofgrid import-inspect `
+  --log <generated-json-log> --require-pass --output .proofgrid/inspect-result.json
+```
+
+Inspect owns task execution and the raw versioned log. ProofGrid's
+`json_schema_contract` scorer validates consumer-owned JSON Schema oracles,
+then `import-inspect` rejects unversioned tasks, the wrong Inspect revision,
+missing scores, sample errors, and contract failures before normalizing the
+run into ProofGrid's result and decision structure. The legacy `doc` extra and
+the `inspect` extra are intentionally declared incompatible because their
+upstream `docstring-parser` ranges do not overlap; use separate environments.
+
 ## Verification
 
 ```powershell
@@ -71,9 +93,12 @@ first-useful timing, review state, and case-level comparison evidence.
 .\.venv\Scripts\python.exe -m black --check py\proofgrid
 .\.venv\Scripts\python.exe -m isort --check-only py\proofgrid
 .\.venv\Scripts\python.exe -m flake8 py\proofgrid
+.\.venv\Scripts\python.exe -m pytest -q py\proofgrid\test_inspect_integration.py
 .\.venv\Scripts\proofgrid.exe run --require-winner
 .\.venv\Scripts\proofgrid.exe export --format csv --output .proofgrid\cases.csv
 ```
 
 See [the observation integration guide](docs/CONTEXTSIDECAR_OBSERVATION_INTEGRATION.md)
 for the versioned bundle and cross-application workflow.
+See [the Inspect executable-evaluation boundary](docs/INSPECT_EXECUTABLE_EVALUATION.md)
+for ownership, import gates, mutation evidence, and claim limits.

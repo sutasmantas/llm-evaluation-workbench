@@ -96,3 +96,147 @@
 - client relevance: the same workbench can now evaluate outputs from an
   existing chatbot/copilot code path instead of forcing a client to replace
   their provider layer or accept a separate untested benchmark implementation.
+
+---
+
+# ProofGrid technique-ceiling expertise notes
+
+Date: 2026-08-04
+
+## Calibrate the evaluator before trusting the score
+
+### Client trigger
+
+- Job wording: LLM-as-a-judge, automated quality scoring, prompt/model
+  comparison, regression gate, human evaluation, or rubric-based review.
+- Delivery condition: open-ended outputs cannot be fully checked by code, so an
+  automated judge would influence release or routing.
+
+### Failure symptom or unanswered choice
+
+A judge can return clean numerical scores and explanations while disagreeing
+with the target reviewers. Evidence across tasks shows criterion-dependent
+agreement, position/length/self-preference, prompt sensitivity and repeated-run
+instability. Adding more judges can preserve correlated errors or amplify bias.
+
+### Competing options and evidence reuse
+
+| Option | Evidence status | Main tradeoff |
+| --- | --- | --- |
+| deterministic/executable scorer | established where behavior is observable | high precision but incomplete for open quality |
+| one pointwise rubric judge | provisional instrument | cheapest semantic judge; validity is task-specific |
+| pairwise judge with order swap | established but bias-sensitive | discrimination versus position/style/non-transitivity |
+| calibrated judge + selective review | established need, winner unresolved | human labels and calibration work versus lower review risk |
+| multi-judge/meta-judge | contested | more signal and cost, but correlated errors remain |
+
+External studies close that no uncalibrated judge or panel is universal. They
+cannot select ProofGrid's rubric, judge or threshold because the target rater
+population and criteria differ. That applicability question requires PG0.
+
+### Decision rule
+
+Use executable truth first. For remaining criteria, freeze a blind human
+rubric and calibration/test split before judge calls. Promote the simplest
+judge policy only when it meets criterion-level human agreement, seeded-fault,
+bias-stability, false-pass and selective-risk gates with uncertainty bounds.
+Otherwise keep human review.
+
+### Delivery control and reuse boundary
+
+Version judge/model/rubric, randomization, repeats and raw reasoning/decision.
+Keep reviewer disagreements and criterion prevalence. Revalidate after judge,
+rubric, task, language or target-reviewer changes. ProofGrid owns calibration,
+review and release policy; an application owns its exact capture and truth
+contract. A future adopted judge implementation must pass the existing
+case/result/review interface and one success/failure integration check.
+
+### Proposal-safe insight
+
+I do not treat an LLM judge score as ground truth. I validate each rubric
+criterion against blinded human labels, probe order/style/repeat instability,
+and route low-confidence cases to review before the score can gate a release.
+
+### Evidence and interview follow-up
+
+- Evidence: `TECHNIQUE_TAXONOMY.md`, `EVIDENCE_MATRIX.csv`,
+  `BENCHMARK_DESIGN.md` PG0 and `RESEARCH_DECISION.md`.
+- Likely question: Why not use three judges and majority vote?
+- Short answer: diversity helps only when errors are independent. I require the
+  panel to beat one calibrated judge on blind human agreement and selective
+  risk after accounting for cost; otherwise it is complexity without evidence.
+- Central disposition: **new card** — `Calibrate the evaluator before trusting
+  the score`.
+
+## Report uncertainty before promoting a model change
+
+### Client trigger
+
+- Job wording: compare prompts/models/providers, regression testing, A/B
+  evaluation, confidence intervals, or CI promotion thresholds.
+- Delivery condition: model outputs or judges are stochastic, cases are sampled
+  from a larger workload, or the apparent winner is close.
+
+### Failure symptom or unanswered choice
+
+A single aggregate score makes a small fixture set look exact. Even temperature
+zero/provider seeds can vary, and case mix can reverse rankings. Picking the
+highest mean without paired uncertainty turns noise and benchmark composition
+into a release decision.
+
+### Competing options
+
+| Option | Benefit | Failure risk |
+| --- | --- | --- |
+| one deterministic run/mean | cheap and reproducible for pure code paths | ignores case-sampling and provider variance |
+| repeated paired trials + bootstrap/Wilson bounds | interpretable and broadly reusable | inference cost and grouped-case assumptions |
+| Bayesian/conformal ranking | richer probability/abstention decisions | more assumptions and calibration complexity |
+
+### Decision rule
+
+Keep deterministic gates exact. For stochastic candidates, run paired repeats
+over the same ordered cases and report per-slice intervals. Promote only when
+the paired interval excludes the predeclared material regression and all
+critical hard gates pass. Use Bayesian/conformal machinery only if the simpler
+interval and abstention policy cannot answer the delivery decision.
+
+### Delivery control and reuse boundary
+
+Record run count, ordering, seeds/decoding, provider revision, stopped/failed
+runs and the sampling unit used for intervals. Cluster related variants by
+source case. Never silently reduce repeats after seeing cost or results. The
+statistical primitives should come from maintained libraries; ProofGrid owns
+only the pairing, grouping and promotion policy.
+
+### Proposal-safe insight
+
+I report whether a candidate's improvement survives repeated paired cases and
+uncertainty—not only its average score—and I keep correctness gates separate
+from latency/cost tie-breaks.
+
+### Evidence and interview follow-up
+
+- Evidence: `BENCHMARK_DESIGN.md`, `EVIDENCE_MATRIX.csv` and the reproducible
+  evaluation sources in `TECHNIQUE_TAXONOMY.md`.
+- Likely question: Do deterministic test suites need confidence intervals?
+- Short answer: the code result may be deterministic, but the selected cases
+  still sample a workload. Exact critical gates remain binary; comparative
+  claims need uncertainty over cases, and stochastic providers additionally
+  need repeated runs.
+- Central disposition: **new card** — `Report uncertainty before promoting a
+  model change`.
+
+## Technique-ceiling dispositions for existing notes
+
+- **Experiment 1 — structured validity is not semantic support:** retained and
+  externally reinforced; central disposition remains **duplicate** of
+  `Validate semantic support separately from JSON shape`.
+- **Experiment 2 — test the real scorer call contract:** retained; central
+  disposition remains **duplicate** of `Verify an adapter at the wire before
+  claiming the integration`.
+- **Experiment 3 — retry only recoverable failures:** retained; central
+  disposition remains **duplicate** of `Retry incomplete actions, not the
+  entire workflow` and `Classify integration failures before retrying`.
+- **Experiment 4 — evaluate the real application boundary:** retained as an
+  adapter-design example but no new central card. It is too specific and
+  overlaps the existing wire-verification and shared-evaluator cards. No
+  ContextSidecar work or evidence reconciliation was performed in this dossier.

@@ -1,6 +1,6 @@
 # ProofGrid execution checkpoint
 
-Last updated: 2026-08-03
+Last updated: 2026-08-06
 
 ## Decision
 
@@ -69,6 +69,22 @@ and is reported in the cross-portfolio checkpoint and handback.
 Every extension row is `PASS`. Real-provider quality remains a separate
 credentialed experiment and is not implied by this gate.
 
+## Shared-verification extension gate
+
+| Requirement | Status | Evidence |
+| --- | --- | --- |
+| Audited executable-evaluation trigger | PASS | prior audit's conditional Inspect seam activated by FirstRing's executable agent workload |
+| Immutable external execution engine | PASS | Inspect AI `cb00efcd12dfbf3e44f486648e05e54f1337fe9a`; observed version `0.3.253.dev7+gcb00efcd1`; locked optional environment |
+| Narrow provider ownership | PASS | `proofgrid.inspect_integration` owns only JSON-Schema scoring and strict log normalization; Inspect retains execution/log ownership |
+| Provider reference | PASS | raw log plus normalized 1/1 result under `docs/evidence/inspect-reference/` |
+| Real independent consumer | PASS | FirstRing executes four application scenarios using a vendored ProofGrid wheel and consumer-local schemas |
+| Relevant failure path | PASS | FirstRing provider failure, recovery, handoff exhaustion, and dead-letter final state satisfy the frozen oracle |
+| Mutation evidence | PASS | fail-open unknown-FAQ mutation yields 3/4, `contract_mismatch`, no winner, and expected CLI exit 2 |
+| Existing provider gate | PASS | Black, isort, Flake8, compileall, package/Twine, and 30 ProofGrid tests including seven real Inspect integration tests |
+
+The extension is locally complete. It proves transfer of one executable
+evaluation boundary and no broader model, agent, or provider-quality claim.
+
 ## Measured first experiment
 
 Promotion was registered before the run: heldout schema pass = 1.0, exact pass
@@ -135,8 +151,41 @@ providers or establish real-model quality.
 
 ## Exact next action
 
-Update ContextSidecar's checkpoint with ProofGrid merge `850156b`, then resume
-only ContextSidecar's remaining credentialed C0 measurements: real ASR, real
-vision, and two real answer candidates with genuine human reviews. Do not add
-another generic evaluation runner or claim fixture evidence as provider
-quality.
+Integrate the shared-verification extension into ProofGrid and FirstRing local
+`main` branches and update the central toolbox checkpoint. Hosted GitHub
+execution remains a separately deferred receipt. ContextSidecar remains under
+its separate owner; do not turn this extension into another evaluation control
+plane or claim fixture evidence as provider quality.
+
+## Technique-ceiling dossier closure — 2026-08-04
+
+- Research exit gate: `PASS`; ProofGrid technique experiments remain
+  `PARTIAL`.
+- Isolated worktree: `portfolio_demos/worktrees/proofgrid_technique_dossier`.
+- Branch: `agent/proofgrid-technique-dossier`, based on clean ProofGrid `main`
+  commit `db5fbeef4eb64504d067f36561677d2b99a32925`.
+- Dossier commit: `e8fe8850e51f32ce17dc389d0a162ff86ddcd713`.
+- Required artifacts: `TECHNIQUE_TAXONOMY.md`, `EVIDENCE_MATRIX.csv`,
+  `GITHUB_IMPLEMENTATION_AUDIT.md`, `BENCHMARK_DESIGN.md`,
+  `RESEARCH_DECISION.md`, and the expanded `docs/EXPERTISE_NOTES.md`.
+- Expertise disposition: central cards **Calibrate the evaluator before
+  trusting the score** and **Report uncertainty before promoting a model
+  change** were added to `UPWORK_EXPERTISE_INDEX.md`. Structured validity,
+  scorer-call compatibility, retry classification and application-boundary
+  notes explicitly reuse existing cards.
+- Verification: all six artifacts exist; the CSV imports as 24 candidates with
+  all required columns and no blank candidate/status/disposition; all eleven
+  systematic evidence rows are `PASS`; `git diff --check` passes. Local
+  evidence references resolve. Application tests were not rerun because this
+  slice changes research/checkpoint Markdown and CSV only.
+- Decision: retain AutoEvals as the focused scorer foundation and ProofGrid as
+  the evaluation/control plane. Admit PG0 blinded human calibration, judge-bias
+  probes, repeated paired evidence and uncertainty first. PG1 structured
+  output, PG2 metamorphic relations and PG3 framework adapters remain gated.
+- Scope stopped before: provider/judge calls, human-label collection,
+  experiment execution, component integration, ContextSidecar work, UI/visual
+  polish, merge, push or deployment.
+- Exact next cross-portfolio action: complete the joint Relay + Website
+  Assistant systematic dossiers in their own isolated worktrees. Do not start
+  ProofGrid PG0 from this checkpoint. ContextSidecar is complete under another
+  owner and outside this stream.

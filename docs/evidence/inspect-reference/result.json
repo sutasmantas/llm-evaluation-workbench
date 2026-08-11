@@ -1,0 +1,91 @@
+{
+  "kind": "inspect_executable_evaluation",
+  "run_id": "inspect_FAB5NrWkZAWDtTzHGS2CmX",
+  "created_at": "2026-08-06T19:18:56+00:00",
+  "suite_hash": "d1dcb8f6de3c9e15629546daab630e43601d51d95ea48adc8d418b9148b584d5",
+  "promotion_hash": "2c717e94e0f772a69e73ceeab8eddf57064f27de0a8963ac72189d275c7ec2c2",
+  "promotion_rule": {
+    "scorer": "json_schema_contract",
+    "minimum_score": 1.0
+  },
+  "source": {
+    "framework": "inspect-ai",
+    "framework_version": "0.3.253.dev7+gcb00efcd1",
+    "framework_revision": "cb00efcd12dfbf3e44f486648e05e54f1337fe9a",
+    "log_name": "2026-08-06T19-18-56-00-00_proofgrid-inspect-reference_Kn28veawvbhuZBSNqNxEDx.json",
+    "log_sha256": "6c0331a471998abb81b5958035ee742263cd4fe5864f2a751e03f3d6258c0f8c",
+    "eval_id": "FAB5NrWkZAWDtTzHGS2CmX",
+    "task_version": "1"
+  },
+  "cases": [
+    {
+      "case_id": "provider-reference",
+      "split": "heldout",
+      "category": "provider-reference",
+      "input": "Import one versioned executable observation",
+      "expected": "{\"additionalProperties\": false, \"properties\": {\"ready\": {\"const\": true}}, \"required\": [\"ready\"], \"type\": \"object\"}"
+    }
+  ],
+  "candidates": [
+    {
+      "candidate_id": "proofgrid_inspect_reference",
+      "label": "proofgrid_inspect_reference",
+      "provider": "inspect-ai",
+      "model": "mockllm/model",
+      "response_mode": "executable-agent",
+      "prompt_hash": "d2dd6b6fe0df7b4692dd62bf02188ff2c88f268f527d02be40f58ed1dc4f0458",
+      "config_hash": "59a967709eef7422d5471855ded68f54dfd94d4efb5e8cfe5ff23471b95ceda1",
+      "rows": [
+        {
+          "case_id": "provider-reference",
+          "split": "heldout",
+          "category": "provider-reference",
+          "output": "{\"ready\": true}",
+          "expected": "{\"additionalProperties\": false, \"properties\": {\"ready\": {\"const\": true}}, \"required\": [\"ready\"], \"type\": \"object\"}",
+          "schema_score": 1.0,
+          "task_score": 1.0,
+          "exact_score": null,
+          "latency_ms": 13.0,
+          "prompt_tokens": null,
+          "completion_tokens": null,
+          "total_tokens": null,
+          "cost_usd": null,
+          "retry_count": 0,
+          "rate_limit_count": 0,
+          "failure_class": null,
+          "error": null,
+          "score_explanation": "output satisfies the frozen JSON Schema oracle",
+          "score_metadata": {
+            "failure_class": null,
+            "error_count": 0
+          },
+          "needs_review": false,
+          "review_reason": null,
+          "passed": true
+        }
+      ],
+      "summary": {
+        "evaluated_cases": 1,
+        "passed_cases": 1,
+        "pass_rate": 1.0,
+        "minimum_score": 1.0,
+        "sample_errors": 0,
+        "gate_checks": {
+          "all_samples_scored": true,
+          "minimum_score": true,
+          "sample_errors": true
+        },
+        "promoted": true
+      }
+    }
+  ],
+  "decision": {
+    "promoted_candidates": [
+      "proofgrid_inspect_reference"
+    ],
+    "winner": "proofgrid_inspect_reference",
+    "winner_basis": "all executable samples satisfy the frozen JSON Schema oracle",
+    "provider_superiority_claim_allowed": false,
+    "scope": "pinned executable task and frozen consumer-local schemas only"
+  }
+}

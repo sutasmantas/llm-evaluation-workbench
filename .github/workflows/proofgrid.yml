@@ -38,3 +38,31 @@ jobs:
           python -m twine check dist/*
       - name: Deterministic promotion gate
         run: proofgrid run --require-winner --output .proofgrid/ci-run.json
+
+  # The Inspect tests are skipped by the job above, because inspect_ai is in the optional
+  # `inspect` extra and that job installs `.[dev]`. A skipped test is a silent pass, so this
+  # job exists to actually run them. Without it, `pytest.importorskip` in
+  # test_inspect_integration.py would have converted a loud failure into no signal at all.
+  #
+  # Its own job rather than a step above: the dependency is a pinned git revision and takes
+  # noticeably longer to install than the whole rest of the suite, and the core gate should not
+  # wait on it. Credential-free — the tests evaluate against `mockllm/model`.
+  inspect-evaluation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install with the Inspect extra
+        run: python -m pip install -e ".[dev,inspect]"
+      # Naming the FILE rather than the directory is what makes a silent skip impossible here,
+      # and it is deliberate. `importorskip` skips at module level, so nothing is collected, and
+      # pytest exits 5 (no tests collected) — a CI failure. Verified both ways: this file alone
+      # exits 5 when inspect_ai is absent, while `pytest py/proofgrid` exits 0 because the 18
+      # siblings still run. So the core gate stays green and this job goes red, which is exactly
+      # the split that was wanted.
+      - name: Inspect executable evaluation
+        run: python -m pytest -q py/proofgrid/test_inspect_integration.py

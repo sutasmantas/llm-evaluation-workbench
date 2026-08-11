@@ -42,6 +42,14 @@ def _parser() -> argparse.ArgumentParser:
     observations.add_argument("--db", type=Path, default=Path(".proofgrid/runs.sqlite3"))
     observations.add_argument("--output", type=Path)
 
+    inspect_import = subparsers.add_parser("import-inspect", help="import a pinned Inspect executable-evaluation log")
+    inspect_import.add_argument("--log", type=Path, required=True)
+    inspect_import.add_argument("--scorer", default="json_schema_contract")
+    inspect_import.add_argument("--minimum-score", type=float, default=1.0)
+    inspect_import.add_argument("--db", type=Path, default=Path(".proofgrid/runs.sqlite3"))
+    inspect_import.add_argument("--output", type=Path)
+    inspect_import.add_argument("--require-pass", action="store_true")
+
     review_answer = subparsers.add_parser("review-answer", help="resolve one imported answer review")
     review_answer.add_argument("--db", type=Path, default=Path(".proofgrid/runs.sqlite3"))
     review_answer.add_argument("--review-id", required=True)
@@ -97,6 +105,25 @@ def main(argv: list[str] | None = None) -> int:
             args.output.parent.mkdir(parents=True, exist_ok=True)
             args.output.write_text(serialized + "\n", encoding="utf-8")
         print(json.dumps({"run_id": result["run_id"], "decision": result["decision"]}, indent=2))
+        return 0
+    if args.command == "import-inspect":
+        try:
+            from .inspect_integration import import_inspect_log
+        except ImportError as exc:
+            raise SystemExit("install ProofGrid with the inspect extra to import Inspect logs") from exc
+        result = import_inspect_log(
+            args.log,
+            scorer_name=args.scorer,
+            minimum_score=args.minimum_score,
+        )
+        RunStore(args.db).save_run(result)
+        serialized = json.dumps(result, ensure_ascii=False, indent=2)
+        if args.output:
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_text(serialized + "\n", encoding="utf-8")
+        print(json.dumps({"run_id": result["run_id"], "decision": result["decision"]}, indent=2))
+        if args.require_pass and result["decision"]["winner"] is None:
+            return 2
         return 0
     if args.command == "review-answer":
         review = _json(args.review)
