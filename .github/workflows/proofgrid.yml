@@ -32,10 +32,23 @@ jobs:
           py/autoevals/test_json.py
           py/autoevals/test_serializable_data_class.py
           py/proofgrid
+      - name: Install Track C package test dependencies
+        run: |
+          python -m pip install ./packages/provider_contracts
+          python -m pip install ./packages/structured_output
+      - name: Track C package contracts and mutation gate
+        run: |
+          python -m black --check packages scripts/test_track_c_mutants.py
+          python -m ruff check packages scripts/test_track_c_mutants.py scripts/build_track_c_packages.py
+          python -m flake8 packages/provider_contracts/src packages/provider_contracts/tests packages/structured_output/src packages/structured_output/tests scripts/test_track_c_mutants.py
+          python -m pytest -q packages/provider_contracts/tests packages/structured_output/tests
+          python scripts/test_track_c_mutants.py
       - name: Package
         run: |
           python -m build
           python -m twine check dist/*
+          python scripts/build_track_c_packages.py --outdir dist/track-c
+          python -m twine check dist/track-c/*
       - name: Deterministic promotion gate
         run: proofgrid run --require-winner --output .proofgrid/ci-run.json
 

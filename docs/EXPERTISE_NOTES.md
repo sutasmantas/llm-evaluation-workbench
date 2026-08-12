@@ -2,6 +2,14 @@
 
 **Verification:** [claim-to-artifact map and rerun commands](https://sutasmantas.github.io/evidence/#proofgrid) · [machine-readable receipt](https://sutasmantas.github.io/evidence/receipt.json)
 
+**Shared-boundary evidence:** ProofGrid owns two narrow `0.1.0` wheels for a
+vendor-neutral completion/replay contract and strict schema-conformant output.
+The package suites use construction-known response/transport faults, and an
+eight-mutant source gate proves the checks can reject the admitted defect
+classes. Relay consumes the exact wheels without installing the full workbench;
+native tool calling, streaming and provider-specific CLI behavior remain out of
+scope.
+
 ## Experiment 1 — structured validity is not semantic support
 
 - failure symptom: the schema-constrained path returned valid JSON for the

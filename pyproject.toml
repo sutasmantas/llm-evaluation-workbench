@@ -51,6 +51,7 @@ dev = [
   "pytest-asyncio",
   "pytest-mock",
   "respx",
+  "ruff>=0.12,<1",
 ]
 doc = ["pydoc-markdown"]
 scipy = ["numpy", "scipy"]

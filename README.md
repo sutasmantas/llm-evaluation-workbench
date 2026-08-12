@@ -88,6 +88,20 @@ run into ProofGrid's result and decision structure. The legacy `doc` extra and
 the `inspect` extra are intentionally declared incompatible because their
 upstream `docstring-parser` ranges do not overlap; use separate environments.
 
+## Reusable model boundaries
+
+ProofGrid also builds two independent Python 3.11 wheels under `packages/`:
+`proofgrid-provider-contracts` owns a vendor-neutral non-streaming completion
+and deterministic replay contract, while `proofgrid-structured-output` owns
+balanced JSON extraction, Draft 2020-12 validation, bounded repair and refusal.
+They are separate from the inherited AutoEvals distribution, so a consumer does
+not install the full workbench. Relay is the first external consumer and vendors
+both exact `0.1.0` wheels.
+
+The boundary intentionally excludes native tool calling, streaming and any
+provider-specific CLI. Its offline suites carry construction-known response and
+transport faults; the mutation runner must kill all eight planted defects.
+
 ## Verification
 
 ```powershell
@@ -96,6 +110,9 @@ upstream `docstring-parser` ranges do not overlap; use separate environments.
 .\.venv\Scripts\python.exe -m isort --check-only py\proofgrid
 .\.venv\Scripts\python.exe -m flake8 py\proofgrid
 .\.venv\Scripts\python.exe -m pytest -q py\proofgrid\test_inspect_integration.py
+.\.venv\Scripts\python.exe -m pytest -q packages\provider_contracts\tests packages\structured_output\tests
+.\.venv\Scripts\python.exe scripts\test_track_c_mutants.py
+.\.venv\Scripts\python.exe scripts\build_track_c_packages.py --outdir dist\track-c
 .\.venv\Scripts\proofgrid.exe run --require-winner
 .\.venv\Scripts\proofgrid.exe export --format csv --output .proofgrid\cases.csv
 ```

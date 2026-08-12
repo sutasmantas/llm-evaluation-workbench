@@ -1,0 +1,3 @@
+packages/** text eol=lf
+scripts/build_track_c_packages.py text eol=lf
+scripts/test_track_c_mutants.py text eol=lf

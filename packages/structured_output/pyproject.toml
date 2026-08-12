@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "proofgrid-structured-output"
+version = "0.1.0"
+description = "Extract, validate, repair, or refuse model-generated JSON."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{ name = "Mantas Sutas" }]
+dependencies = [
+  "jsonschema>=4.23,<5",
+  "proofgrid-provider-contracts==0.1.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+

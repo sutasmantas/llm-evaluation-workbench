@@ -1,3 +1,7 @@
 [flake8]
 max-line-length = 119
-ignore = E402, E203, E501, W503
+# Import order has dedicated gates: isort for the inherited ProofGrid package
+# and Ruff I001 for Track C. flake8-isort does not read this repository's
+# pyproject profile consistently and otherwise conflicts with Black on the new
+# package roots.
+ignore = E402, E203, E501, W503, I001, I002, I003, I004, I005
