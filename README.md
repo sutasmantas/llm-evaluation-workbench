@@ -1,5 +1,7 @@
 # ProofGrid
 
+**Verification:** [claim-to-artifact map and rerun commands](https://sutasmantas.github.io/evidence/#proofgrid) · [machine-readable receipt](https://sutasmantas.github.io/evidence/receipt.json)
+
 ProofGrid is a local-first reliability workbench for comparing LLM prompts,
 models, schemas, and repair strategies against the same versioned cases. It
 tracks output quality, latency, token use, cost, retries, validation failures,

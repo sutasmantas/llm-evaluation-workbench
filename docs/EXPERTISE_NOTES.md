@@ -1,5 +1,7 @@
 # ProofGrid expertise notes
 
+**Verification:** [claim-to-artifact map and rerun commands](https://sutasmantas.github.io/evidence/#proofgrid) · [machine-readable receipt](https://sutasmantas.github.io/evidence/receipt.json)
+
 ## Experiment 1 — structured validity is not semantic support
 
 - failure symptom: the schema-constrained path returned valid JSON for the
