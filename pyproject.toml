@@ -33,10 +33,10 @@ Homepage = "https://www.braintrustdata.com"
 [project.optional-dependencies]
 dev = [
   # Formatting and linting
-  "black==22.6.0",
+  "black==26.5.1",
   "flake8",
   "flake8-isort",
-  "isort==5.12.0",
+  "isort==8.0.1",
   "pre-commit",
 
   # Build and release tooling
@@ -55,7 +55,7 @@ dev = [
 ]
 doc = ["pydoc-markdown"]
 scipy = ["numpy", "scipy"]
-litellm = ["litellm>=1.60,<1.85"]
+litellm = ["litellm>=1.60,<1.97"]
 inspect = [
   "inspect-ai @ git+https://github.com/UKGovernmentBEIS/inspect_ai.git@cb00efcd12dfbf3e44f486648e05e54f1337fe9a",
 ]
